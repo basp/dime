@@ -1,0 +1,15 @@
+USE [sandbox];
+GO
+
+CREATE TABLE [foo] (
+    [id] INT IDENTITY(1, 1) PRIMARY KEY CLUSTERED,
+    [name] NVARCHAR(MAX) NOT NULL   
+);
+GO
+
+CREATE TABLE [bar] (
+    [id] INT IDENTITY(1, 1) PRIMARY KEY CLUSTERED,
+    [name] NVARCHAR(MAX) NOT NULL,
+    [foo_id] INT
+);
+GO
