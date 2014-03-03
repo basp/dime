@@ -1,0 +1,1 @@
+Driver={SQL Server Native Client 11.0};Server=localhost\\localdb;Database=sandbox;Trusted_Connection=yes
