@@ -2,42 +2,39 @@ package main
 
 import (
     _ "code.google.com/p/odbc"
-    "io/ioutil"
+    "database/sql"
+    _ "flag"
+    _ "io/ioutil"
     "log"
     "os"
-    "path/filepath"
+    _ "path/filepath"
+)
+
+var (
+    mssrv       = flag.String("mssrv", "server", "ms sql server name")
+    msdb        = flag.String("msdb", "dbname", "ms sql server database name")
+    msdriver    = flag.String("msdriver", "sql server", "ms sql odbc driver name")
 )
 
 var wd string
 var tx sql.Tx
 
-func walkDatabases(path string, walkFunc func(dir string) error) error {
-    entries, err := ioutil.ReadDir(path)
+func connect() (db *sql.DB, err error) {
+    params := map[string]string {
+        "driver"                : *msdriver,
+        "server"                : *mssrv,
+        "database"              : *msdb,
+        "trusted_connection"    : "true"
+    }
+    var c string
+    for n, v := range params {
+        c += n + "=" + v + ";"
+    }
+    db, err = sql.Open("odbc", c)
     if err != nil {
-        log.Fatal(err)
+        return nil, err
     }
-    for _, e := range entries {
-        if e.IsDir() {
-            dir, err := filepath.Abs(e.Name())
-            if err != nil {
-                return err
-            }
-            walkFunc(dir)
-        }
-    }
-    return nil
-}
-
-func walkScripts(dir string) error {
-    walkFunc := func(path string, info os.FileInfo, err error) error {
-        if filepath.Ext(path) == ".sql" {
-            log.Printf(path)                        
-        }
-        return err
-    }
-    log.Printf("%s", wd)
-    filepath.Walk(wd, walkFunc)
-    return nil
+    return db, nil
 }
 
 func main() {
@@ -46,10 +43,24 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    dbdir := filepath.Join(wd, "databases")
-    walkFunc := func(dir string) error {
-        log.Printf(dir)
-        return nil
+    params := map[string]string {
+        "driver": "sql server",
+        "server": "localhost\\localdb",
+        "database": "sandbox",
+        "trusted_connection": "yes",
     }
-    walkDatabases(dbdir, walkFunc)
+    var c string
+    for n, v := range params {
+        c += n + "="+ v + ";"
+    }
+    var db *sql.DB
+    db, err = sql.Open("odbc", c)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    err = db.Close()
+    if err != nil {
+        log.Fatal(err)
+    }
 }
