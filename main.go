@@ -2,33 +2,54 @@ package main
 
 import (
     _ "code.google.com/p/odbc"
-    "database/sql"
+    "io/ioutil"
     "log"
     "os"
+    "path/filepath"
 )
 
-func main() {
-    wd, err := os.Getwd()
+var wd string
+var tx sql.Tx
+
+func walkDatabases(path string, walkFunc func(dir string) error) error {
+    entries, err := ioutil.ReadDir(path)
     if err != nil {
         log.Fatal(err)
+    }
+    for _, e := range entries {
+        if e.IsDir() {
+            dir, err := filepath.Abs(e.Name())
+            if err != nil {
+                return err
+            }
+            walkFunc(dir)
+        }
+    }
+    return nil
+}
+
+func walkScripts(dir string) error {
+    walkFunc := func(path string, info os.FileInfo, err error) error {
+        if filepath.Ext(path) == ".sql" {
+            log.Printf(path)                        
+        }
+        return err
     }
     log.Printf("%s", wd)
-    connStr := "Driver={SQL Server Native Client 11.0};Server=localhost\\localdb;Database=sandbox;Trusted_Connection=yes"
-    db, err := sql.Open("odbc", connStr)
+    filepath.Walk(wd, walkFunc)
+    return nil
+}
+
+func main() {
+    var err error
+    wd, err = os.Getwd()
     if err != nil {
         log.Fatal(err)
     }
-    rows, err := db.Query("SELECT name FROM sys.objects")
-    if err != nil {
-        log.Fatal(err)
+    dbdir := filepath.Join(wd, "databases")
+    walkFunc := func(dir string) error {
+        log.Printf(dir)
+        return nil
     }
-    for rows.Next() {
-        var name string
-        if err := rows.Scan(&name); err != nil {
-            log.Fatal(err)
-        }
-        log.Printf("%s", name)
-    }
-    db.Close()
-    log.Printf("ok.")
+    walkDatabases(dbdir, walkFunc)
 }
